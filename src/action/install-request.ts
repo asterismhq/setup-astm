@@ -1,39 +1,39 @@
-import { tmpdir } from 'node:os'
-import { resolve } from 'node:path'
+import { tmpdir } from 'node:os';
+import { resolve } from 'node:path';
 
 export interface InstallRequest {
-  token: string
-  submoduleToken?: string
-  allowDarwinX8664Fallback: boolean
-  cacheRoot: string
-  tempDirectory: string
+  token: string;
+  submoduleToken?: string;
+  allowDarwinX8664Fallback: boolean;
+  cacheRoot: string;
+  tempDirectory: string;
 }
 
 export function resolveInstallRequest(options: {
-  token: string
-  submoduleToken?: string
+  token: string;
+  submoduleToken?: string;
 }): InstallRequest {
   const allowDarwinX8664Fallback = parseBooleanEnv(
     process.env.ASTM_ALLOW_DARWIN_X86_64_FALLBACK,
-  )
-  const cacheRootOverride = normalizeOptional(process.env.ASTM_CACHE_ROOT)
-  const runnerEnvironment = normalizeOptional(process.env.RUNNER_ENVIRONMENT)
-  const runnerTemp = normalizeOptional(process.env.RUNNER_TEMP)
-  const runnerToolCache = normalizeOptional(process.env.RUNNER_TOOL_CACHE)
-  const homeDirectory = normalizeOptional(process.env.HOME)
+  );
+  const cacheRootOverride = normalizeOptional(process.env.ASTM_CACHE_ROOT);
+  const runnerEnvironment = normalizeOptional(process.env.RUNNER_ENVIRONMENT);
+  const runnerTemp = normalizeOptional(process.env.RUNNER_TEMP);
+  const runnerToolCache = normalizeOptional(process.env.RUNNER_TOOL_CACHE);
+  const homeDirectory = normalizeOptional(process.env.HOME);
 
-  const tempDirectory = runnerTemp ?? tmpdir()
+  const tempDirectory = runnerTemp ?? tmpdir();
 
-  let cacheRoot: string
+  let cacheRoot: string;
   if (cacheRootOverride) {
-    cacheRoot = cacheRootOverride
+    cacheRoot = cacheRootOverride;
   } else if (runnerEnvironment === 'github-hosted') {
-    cacheRoot = resolve(runnerTemp ?? tmpdir(), 'astm-bin-cache')
+    cacheRoot = resolve(runnerTemp ?? tmpdir(), 'astm-bin-cache');
   } else {
     const base =
       runnerToolCache ??
-      (homeDirectory ? resolve(homeDirectory, '.cache') : tmpdir())
-    cacheRoot = resolve(base, 'astm-bin-cache')
+      (homeDirectory ? resolve(homeDirectory, '.cache') : tmpdir());
+    cacheRoot = resolve(base, 'astm-bin-cache');
   }
 
   return {
@@ -42,20 +42,20 @@ export function resolveInstallRequest(options: {
     allowDarwinX8664Fallback,
     cacheRoot,
     tempDirectory,
-  }
+  };
 }
 
 function normalizeOptional(value: string | undefined): string | undefined {
   if (!value) {
-    return undefined
+    return undefined;
   }
-  const normalized = value.trim()
-  return normalized.length > 0 ? normalized : undefined
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : undefined;
 }
 
 function parseBooleanEnv(value: string | undefined): boolean {
   if (!value) {
-    return false
+    return false;
   }
 
   switch (value.trim().toLowerCase()) {
@@ -63,8 +63,8 @@ function parseBooleanEnv(value: string | undefined): boolean {
     case 'true':
     case 'yes':
     case 'on':
-      return true
+      return true;
     default:
-      return false
+      return false;
   }
 }

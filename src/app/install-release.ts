@@ -4,10 +4,10 @@ import {
   rmSync,
   statSync,
   writeFileSync,
-} from 'node:fs'
-import { join } from 'node:path'
-import * as core from '@actions/core'
-import type { InstallRequest } from '../action/install-request'
+} from 'node:fs';
+import { join } from 'node:path';
+import * as core from '@actions/core';
+import type { InstallRequest } from '../action/install-request';
 import {
   detectBinaryVersion,
   ensureExecutablePermissions,
@@ -16,69 +16,69 @@ import {
   isCachedBinaryForVersion,
   pruneSiblingInstallDirectories,
   resolvePlatformCacheDirectory,
-} from '../adapters/cache/binary-install-cache'
-import { fetchReleaseAsset } from '../adapters/github/release-asset-api'
-import { ASTM_REPOSITORY } from '../catalog/astm'
+} from '../adapters/cache/binary-install-cache';
+import { fetchReleaseAsset } from '../adapters/github/release-asset-api';
+import { ASTM_REPOSITORY } from '../catalog/astm';
 import {
   buildReleaseAssetCandidates,
   detectPlatformTuple,
-} from '../domain/platform'
-import type { ParsedVersionRef } from '../domain/version-ref'
+} from '../domain/platform';
+import type { ParsedVersionRef } from '../domain/version-ref';
 
 export async function installReleaseVersion(
   request: InstallRequest,
   versionRef: Extract<ParsedVersionRef, { kind: 'release-tag' }>,
 ): Promise<void> {
-  const platform = detectPlatformTuple()
-  const cacheRoot = request.cacheRoot
-  const platformDir = resolvePlatformCacheDirectory(cacheRoot, platform)
-  const installDir = ensureInstallDirectory(platformDir, versionRef.tag)
-  const binaryPath = join(installDir, 'astm')
+  const platform = detectPlatformTuple();
+  const cacheRoot = request.cacheRoot;
+  const platformDir = resolvePlatformCacheDirectory(cacheRoot, platform);
+  const installDir = ensureInstallDirectory(platformDir, versionRef.tag);
+  const binaryPath = join(installDir, 'astm');
 
   if (isCachedBinaryForVersion(binaryPath, versionRef.version)) {
-    core.info(`astm ${versionRef.version} already cached; skipping download.`)
-    pruneSiblingInstallDirectories(platformDir, versionRef.tag)
-    installBinaryOnPath(installDir)
-    core.info(`astm installed: ${detectBinaryVersion(binaryPath)}`)
-    return
+    core.info(`astm ${versionRef.version} already cached; skipping download.`);
+    pruneSiblingInstallDirectories(platformDir, versionRef.tag);
+    installBinaryOnPath(installDir);
+    core.info(`astm installed: ${detectBinaryVersion(binaryPath)}`);
+    return;
   }
 
   const candidates = buildReleaseAssetCandidates(
     platform,
     request.allowDarwinX8664Fallback,
-  )
+  );
   const releaseAssetResult = await fetchReleaseAsset({
     token: request.token,
     releaseRepository: ASTM_REPOSITORY,
     tagVersion: versionRef.tag,
     candidates,
-  })
+  });
 
   if (!releaseAssetResult.ok) {
-    throw releaseAssetResult.error
+    throw releaseAssetResult.error;
   }
-  const releaseAsset = releaseAssetResult.value
+  const releaseAsset = releaseAssetResult.value;
 
   const tempDirectory = mkdtempSync(
     join(request.tempDirectory, 'setup-astm-release-'),
-  )
-  const downloadPath = join(tempDirectory, releaseAsset.name)
+  );
+  const downloadPath = join(tempDirectory, releaseAsset.name);
 
   try {
-    writeFileSync(downloadPath, releaseAsset.contents)
+    writeFileSync(downloadPath, releaseAsset.contents);
     if (statSync(downloadPath).size === 0) {
       throw new Error(
         `Downloaded release asset '${releaseAsset.name}' is missing or empty in '${ASTM_REPOSITORY.owner}/${ASTM_REPOSITORY.repo}' (${versionRef.tag}).`,
-      )
+      );
     }
 
-    ensureExecutablePermissions(downloadPath)
-    renameSync(downloadPath, binaryPath)
+    ensureExecutablePermissions(downloadPath);
+    renameSync(downloadPath, binaryPath);
   } finally {
-    rmSync(tempDirectory, { recursive: true, force: true })
+    rmSync(tempDirectory, { recursive: true, force: true });
   }
 
-  pruneSiblingInstallDirectories(platformDir, versionRef.tag)
-  installBinaryOnPath(installDir)
-  core.info(`astm installed: ${detectBinaryVersion(binaryPath)}`)
+  pruneSiblingInstallDirectories(platformDir, versionRef.tag);
+  installBinaryOnPath(installDir);
+  core.info(`astm installed: ${detectBinaryVersion(binaryPath)}`);
 }

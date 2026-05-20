@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   mkdtempSync,
@@ -6,9 +6,9 @@ import {
   readdirSync,
   writeFileSync,
   mkdirSync,
-} from 'node:fs'
-import { join } from 'node:path'
-import { tmpdir } from 'node:os'
+} from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 const {
   info,
@@ -32,82 +32,82 @@ const {
   detectBinaryVersion: vi.fn(),
   buildCargoRelease: vi.fn(),
   installBinaryOnPath: vi.fn(),
-}))
+}));
 
 vi.mock('@actions/core', () => ({
   info,
-}))
+}));
 
 vi.mock('../../src/adapters/github/github-git-http-username', () => ({
   resolveGitHubHttpUsername,
-}))
+}));
 
 vi.mock('../../src/adapters/process/github-source-git', () => ({
   commandExists,
   cloneGitHubBranch,
   resolveGitWorktreeHeadSha,
   updateGitHubSubmodules,
-}))
+}));
 
 vi.mock('../../src/domain/platform', () => ({
   detectPlatformTuple,
-}))
+}));
 
 vi.mock('../../src/adapters/cache/binary-install-cache', async () => {
   const actual = await vi.importActual<
     typeof import('../../src/adapters/cache/binary-install-cache')
-  >('../../src/adapters/cache/binary-install-cache')
+  >('../../src/adapters/cache/binary-install-cache');
   return {
     ...actual,
     detectBinaryVersion,
     installBinaryOnPath,
-  }
-})
+  };
+});
 
 vi.mock('../../src/adapters/process/cargo-build', () => ({
   buildCargoRelease,
-}))
+}));
 
-import { installMainSource } from '../../src/app/install-main-source'
+import { installMainSource } from '../../src/app/install-main-source';
 
 describe('app install main-source orchestration', () => {
-  let tempTestDir: string
-  let mockCacheRoot: string
-  let mockTempDirectory: string
+  let tempTestDir: string;
+  let mockCacheRoot: string;
+  let mockTempDirectory: string;
 
   beforeEach(() => {
-    vi.clearAllMocks()
-    tempTestDir = mkdtempSync(join(tmpdir(), 'vitest-setup-astm-main-source-'))
-    mockCacheRoot = join(tempTestDir, 'cache')
-    mockTempDirectory = join(tempTestDir, 'runner-temp')
-    mkdirSync(mockCacheRoot, { recursive: true })
-    mkdirSync(mockTempDirectory, { recursive: true })
+    vi.clearAllMocks();
+    tempTestDir = mkdtempSync(join(tmpdir(), 'vitest-setup-astm-main-source-'));
+    mockCacheRoot = join(tempTestDir, 'cache');
+    mockTempDirectory = join(tempTestDir, 'runner-temp');
+    mkdirSync(mockCacheRoot, { recursive: true });
+    mkdirSync(mockTempDirectory, { recursive: true });
 
     resolveGitHubHttpUsername.mockResolvedValue({
       ok: true,
       value: 'astm-user',
-    })
-    commandExists.mockReturnValue(true)
-    cloneGitHubBranch.mockReturnValue({ ok: true, value: undefined })
-    updateGitHubSubmodules.mockReturnValue({ ok: true, value: undefined })
+    });
+    commandExists.mockReturnValue(true);
+    cloneGitHubBranch.mockReturnValue({ ok: true, value: undefined });
+    updateGitHubSubmodules.mockReturnValue({ ok: true, value: undefined });
     resolveGitWorktreeHeadSha.mockReturnValue({
       ok: true,
       value: '0123456789abcdef0123456789abcdef01234567',
-    })
-    detectPlatformTuple.mockReturnValue({ os: 'linux', arch: 'x86_64' })
-    detectBinaryVersion.mockReturnValue('astm main')
-  })
+    });
+    detectPlatformTuple.mockReturnValue({ os: 'linux', arch: 'x86_64' });
+    detectBinaryVersion.mockReturnValue('astm main');
+  });
 
   afterEach(() => {
     if (tempTestDir) {
-      rmSync(tempTestDir, { recursive: true, force: true })
+      rmSync(tempTestDir, { recursive: true, force: true });
     }
-  })
+  });
 
   it('reuses cached main binary and skips build', async () => {
-    const installDir = join(mockCacheRoot, 'linux-x86_64', 'main-0123456789ab')
-    mkdirSync(installDir, { recursive: true })
-    writeFileSync(join(installDir, 'astm'), 'mock-cached-binary')
+    const installDir = join(mockCacheRoot, 'linux-x86_64', 'main-0123456789ab');
+    mkdirSync(installDir, { recursive: true });
+    writeFileSync(join(installDir, 'astm'), 'mock-cached-binary');
 
     await installMainSource({
       token: 'token',
@@ -115,26 +115,26 @@ describe('app install main-source orchestration', () => {
       allowDarwinX8664Fallback: false,
       cacheRoot: mockCacheRoot,
       tempDirectory: mockTempDirectory,
-    })
+    });
 
-    expect(updateGitHubSubmodules).not.toHaveBeenCalled()
-    expect(buildCargoRelease).not.toHaveBeenCalled()
+    expect(updateGitHubSubmodules).not.toHaveBeenCalled();
+    expect(buildCargoRelease).not.toHaveBeenCalled();
     expect(info).toHaveBeenCalledWith(
       'astm main@0123456789ab already cached; skipping build.',
-    )
-    expect(info).toHaveBeenCalledWith('astm installed: astm main')
-    expect(installBinaryOnPath).toHaveBeenCalledWith(installDir)
+    );
+    expect(info).toHaveBeenCalledWith('astm installed: astm main');
+    expect(installBinaryOnPath).toHaveBeenCalledWith(installDir);
 
-    expect(readdirSync(mockTempDirectory)).toEqual([])
-  })
+    expect(readdirSync(mockTempDirectory)).toEqual([]);
+  });
 
   it('fetches required submodules and builds when not cached', async () => {
     buildCargoRelease.mockImplementation((options) => {
-      const mockBuiltBinary = join(options.buildTargetDir, 'release', 'astm')
-      mkdirSync(join(options.buildTargetDir, 'release'), { recursive: true })
-      writeFileSync(mockBuiltBinary, 'built-data')
-      return mockBuiltBinary
-    })
+      const mockBuiltBinary = join(options.buildTargetDir, 'release', 'astm');
+      mkdirSync(join(options.buildTargetDir, 'release'), { recursive: true });
+      writeFileSync(mockBuiltBinary, 'built-data');
+      return mockBuiltBinary;
+    });
 
     await installMainSource({
       token: 'token',
@@ -142,19 +142,19 @@ describe('app install main-source orchestration', () => {
       allowDarwinX8664Fallback: false,
       cacheRoot: mockCacheRoot,
       tempDirectory: mockTempDirectory,
-    })
+    });
 
     expect(info).toHaveBeenCalledWith(
       'Using submodule_token for required submodule fetch.',
-    )
-    expect(info).toHaveBeenCalledWith('astm installed: astm main')
-    expect(buildCargoRelease).toHaveBeenCalled()
+    );
+    expect(info).toHaveBeenCalledWith('astm installed: astm main');
+    expect(buildCargoRelease).toHaveBeenCalled();
 
-    const installDir = join(mockCacheRoot, 'linux-x86_64', 'main-0123456789ab')
-    expect(readdirSync(installDir)).toContain('astm')
-    expect(installBinaryOnPath).toHaveBeenCalledWith(installDir)
-    expect(readdirSync(mockTempDirectory)).toEqual([])
-  })
+    const installDir = join(mockCacheRoot, 'linux-x86_64', 'main-0123456789ab');
+    expect(readdirSync(installDir)).toContain('astm');
+    expect(installBinaryOnPath).toHaveBeenCalledWith(installDir);
+    expect(readdirSync(mockTempDirectory)).toEqual([]);
+  });
 
   it('fails when main install omits submodule token', async () => {
     await expect(
@@ -164,14 +164,14 @@ describe('app install main-source orchestration', () => {
         cacheRoot: mockCacheRoot,
         tempDirectory: mockTempDirectory,
       }),
-    ).rejects.toThrow('main install requires submodule_token.')
-  })
+    ).rejects.toThrow('main install requires submodule_token.');
+  });
 
   it('fails and cleans up temp directory if submodule update fails', async () => {
     updateGitHubSubmodules.mockReturnValue({
       ok: false,
       error: new Error('Git fetch failed'),
-    })
+    });
 
     await expect(
       installMainSource({
@@ -183,13 +183,13 @@ describe('app install main-source orchestration', () => {
       }),
     ).rejects.toThrow(
       'Failed to fetch required git submodules for source build (verify submodule_token can read submodule repositories): Git fetch failed',
-    )
+    );
 
-    expect(readdirSync(mockTempDirectory)).toEqual([])
-  })
+    expect(readdirSync(mockTempDirectory)).toEqual([]);
+  });
 
   it('fails when cargo is not installed on PATH', async () => {
-    commandExists.mockImplementation((cmd) => cmd !== 'cargo')
+    commandExists.mockImplementation((cmd) => cmd !== 'cargo');
 
     await expect(
       installMainSource({
@@ -201,11 +201,11 @@ describe('app install main-source orchestration', () => {
       }),
     ).rejects.toThrow(
       'main install requires cargo on PATH. Provision Rust toolchain on the runner.',
-    )
-  })
+    );
+  });
 
   it('fails when git is not installed on PATH', async () => {
-    commandExists.mockImplementation((cmd) => cmd !== 'git')
+    commandExists.mockImplementation((cmd) => cmd !== 'git');
 
     await expect(
       installMainSource({
@@ -215,6 +215,6 @@ describe('app install main-source orchestration', () => {
         cacheRoot: mockCacheRoot,
         tempDirectory: mockTempDirectory,
       }),
-    ).rejects.toThrow('main install requires git on PATH.')
-  })
-})
+    ).rejects.toThrow('main install requires git on PATH.');
+  });
+});
