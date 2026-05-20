@@ -1,45 +1,45 @@
-import * as core from '@actions/core'
-import { readOptionalInput, readRequiredInput } from './action/inputs'
-import { resolveInstallRequest } from './action/install-request'
-import { emitInstallOutputs } from './action/outputs'
-import { installMainSource } from './app/install-main-source'
-import { installReleaseVersion } from './app/install-release'
-import { parseVersionRef } from './domain/version-ref'
+import * as core from '@actions/core';
+import { readOptionalInput, readRequiredInput } from './action/inputs';
+import { resolveInstallRequest } from './action/install-request';
+import { emitInstallOutputs } from './action/outputs';
+import { installMainSource } from './app/install-main-source';
+import { installReleaseVersion } from './app/install-release';
+import { parseVersionRef } from './domain/version-ref';
 
 export function resolveInstallMode(versionRef: string): 'release-tag' | 'main' {
-  return parseVersionRef(versionRef).kind
+  return parseVersionRef(versionRef).kind;
 }
 
 export async function run(): Promise<void> {
-  const token = readRequiredInput('token')
-  const versionRef = readRequiredInput('version')
-  const submoduleToken = readOptionalInput('submodule_token')
+  const token = readRequiredInput('token');
+  const versionRef = readRequiredInput('version');
+  const submoduleToken = readOptionalInput('submodule_token');
 
-  const parsedVersion = parseVersionRef(versionRef)
-  const installMode = parsedVersion.kind
+  const parsedVersion = parseVersionRef(versionRef);
+  const installMode = parsedVersion.kind;
 
-  core.info(`Resolved version='${versionRef}' (${installMode}).`)
+  core.info(`Resolved version='${versionRef}' (${installMode}).`);
 
-  emitInstallOutputs(versionRef, installMode)
+  emitInstallOutputs(versionRef, installMode);
 
   const installRequest = resolveInstallRequest({
     token,
     submoduleToken,
-  })
+  });
 
   if (parsedVersion.kind === 'release-tag') {
-    await installReleaseVersion(installRequest, parsedVersion)
-    return
+    await installReleaseVersion(installRequest, parsedVersion);
+    return;
   }
 
-  await installMainSource(installRequest)
+  await installMainSource(installRequest);
 }
 
 if (require.main === module) {
   run().catch((error: unknown) => {
     if (error instanceof Error) {
-      core.setFailed(error.stack || error.message)
-      return
+      core.setFailed(error.stack || error.message);
+      return;
     }
 
     if (
@@ -48,10 +48,10 @@ if (require.main === module) {
       'message' in error &&
       typeof error.message === 'string'
     ) {
-      core.setFailed(error.message)
-      return
+      core.setFailed(error.message);
+      return;
     }
 
-    core.setFailed(`Unhandled rejection: ${JSON.stringify(error)}`)
-  })
+    core.setFailed(`Unhandled rejection: ${JSON.stringify(error)}`);
+  });
 }

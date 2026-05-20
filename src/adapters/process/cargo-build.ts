@@ -1,11 +1,11 @@
-import { existsSync } from 'node:fs'
-import { spawnSync } from 'node:child_process'
-import { join } from 'node:path'
+import { existsSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { join } from 'node:path';
 
 export function buildCargoRelease(options: {
-  cwd: string
-  manifestPath: string
-  buildTargetDir: string
+  cwd: string;
+  manifestPath: string;
+  buildTargetDir: string;
 }): string {
   const buildResult = spawnSync(
     'cargo',
@@ -18,26 +18,26 @@ export function buildCargoRelease(options: {
         CARGO_TARGET_DIR: options.buildTargetDir,
       },
     },
-  )
+  );
 
   if (buildResult.error) {
     throw new Error(
       `Failed to build astm from source: ${buildResult.error.message}`,
-    )
+    );
   }
 
   if (buildResult.status !== 0) {
     throw new Error(
       `Failed to build astm from source: ${buildResult.stderr.trim()}`,
-    )
+    );
   }
 
-  const builtBinary = join(options.buildTargetDir, 'release', 'astm')
+  const builtBinary = join(options.buildTargetDir, 'release', 'astm');
   if (!existsSync(builtBinary)) {
     throw new Error(
       `Source build completed but binary not found at '${builtBinary}'.`,
-    )
+    );
   }
 
-  return builtBinary
+  return builtBinary;
 }

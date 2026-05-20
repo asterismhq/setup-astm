@@ -1,24 +1,24 @@
-import { spawnSync } from 'node:child_process'
-import type { RepositorySlug } from '../../domain/repository-slug'
-import { err, ok, type Result } from '../../domain/result'
+import { spawnSync } from 'node:child_process';
+import type { RepositorySlug } from '../../domain/repository-slug';
+import { err, ok, type Result } from '../../domain/result';
 
-const GITHUB_HTTPS_BASE = 'https://github.com/'
+const GITHUB_HTTPS_BASE = 'https://github.com/';
 
 export function commandExists(program: string): boolean {
   const result = spawnSync(program, ['--version'], {
     stdio: ['ignore', 'ignore', 'ignore'],
-  })
-  return result.status === 0
+  });
+  return result.status === 0;
 }
 
 export function cloneGitHubBranch(options: {
-  repository: RepositorySlug
-  branch: string
-  destination: string
-  token: string
-  username: string
+  repository: RepositorySlug;
+  branch: string;
+  destination: string;
+  token: string;
+  username: string;
 }): Result<void> {
-  const { owner, repo } = options.repository
+  const { owner, repo } = options.repository;
   const result = runGitHubCommand({
     args: [
       'clone',
@@ -35,41 +35,41 @@ export function cloneGitHubBranch(options: {
       options.destination,
     ],
     operation: `clone ${owner}/${repo}@${options.branch}`,
-  })
+  });
 
   if (!result.ok) {
-    return err(result.error)
+    return err(result.error);
   }
 
-  return ok(undefined)
+  return ok(undefined);
 }
 
 export function resolveGitWorktreeHeadSha(options: {
-  cwd: string
+  cwd: string;
 }): Result<string> {
   const result = runGitHubCommand({
     cwd: options.cwd,
     args: ['rev-parse', 'HEAD'],
     operation: 'resolve cloned source head SHA',
-  })
+  });
 
   if (!result.ok) {
-    return err(result.error)
+    return err(result.error);
   }
 
-  const output = result.value.trim()
+  const output = result.value.trim();
 
   if (!isFullGitSha(output)) {
-    return err(new Error('Failed to resolve cloned source head SHA.'))
+    return err(new Error('Failed to resolve cloned source head SHA.'));
   }
 
-  return ok(output)
+  return ok(output);
 }
 
 export function updateGitHubSubmodules(options: {
-  cwd: string
-  token: string
-  username: string
+  cwd: string;
+  token: string;
+  username: string;
 }): Result<void> {
   const syncResult = runGitHubCommand({
     cwd: options.cwd,
@@ -77,10 +77,10 @@ export function updateGitHubSubmodules(options: {
     username: options.username,
     args: ['submodule', 'sync', '--recursive'],
     operation: 'sync git submodule configuration for source build',
-  })
+  });
 
   if (!syncResult.ok) {
-    return err(syncResult.error)
+    return err(syncResult.error);
   }
 
   const updateResult = runGitHubCommand({
@@ -89,21 +89,21 @@ export function updateGitHubSubmodules(options: {
     username: options.username,
     args: ['submodule', 'update', '--init', '--recursive', '--depth=1'],
     operation: 'fetch git submodules for source build',
-  })
+  });
 
   if (!updateResult.ok) {
-    return err(updateResult.error)
+    return err(updateResult.error);
   }
 
-  return ok(undefined)
+  return ok(undefined);
 }
 
 function runGitHubCommand(options: {
-  cwd?: string
-  token?: string
-  username?: string
-  args: string[]
-  operation: string
+  cwd?: string;
+  token?: string;
+  username?: string;
+  args: string[];
+  operation: string;
 }): Result<string> {
   const gitArgs = [
     '-c',
@@ -114,13 +114,13 @@ function runGitHubCommand(options: {
     'http.lowSpeedLimit=1024',
     '-c',
     'http.lowSpeedTime=30',
-  ]
+  ];
 
   if (options.token) {
     const authenticatedBase = buildAuthenticatedGitHubBase({
       username: options.username ?? 'x-access-token',
       token: options.token,
-    })
+    });
     gitArgs.push(
       '-c',
       `url.${authenticatedBase}.insteadOf=${GITHUB_HTTPS_BASE}`,
@@ -128,10 +128,10 @@ function runGitHubCommand(options: {
       `url.${authenticatedBase}.insteadOf=git@github.com:`,
       '-c',
       `url.${authenticatedBase}.insteadOf=ssh://git@github.com/`,
-    )
+    );
   }
 
-  gitArgs.push(...options.args)
+  gitArgs.push(...options.args);
 
   const result = spawnSync('git', gitArgs, {
     cwd: options.cwd,
@@ -140,43 +140,43 @@ function runGitHubCommand(options: {
       ...process.env,
       GIT_TERMINAL_PROMPT: '0',
     },
-  })
+  });
 
-  const spawnError = (result as { error?: unknown }).error
+  const spawnError = (result as { error?: unknown }).error;
   if (spawnError !== undefined) {
     const spawnErrorMessage =
-      spawnError instanceof Error ? spawnError.message : String(spawnError)
+      spawnError instanceof Error ? spawnError.message : String(spawnError);
     return err(
       new Error(`Failed to ${options.operation}: ${spawnErrorMessage}`),
-    )
+    );
   }
 
   if (result.status === 0) {
-    return ok(result.stdout)
+    return ok(result.stdout);
   }
 
-  const stderr = typeof result.stderr === 'string' ? result.stderr.trim() : ''
+  const stderr = typeof result.stderr === 'string' ? result.stderr.trim() : '';
   if (stderr.length > 0) {
-    return err(new Error(`Failed to ${options.operation}: ${stderr}`))
+    return err(new Error(`Failed to ${options.operation}: ${stderr}`));
   }
 
-  const stdout = typeof result.stdout === 'string' ? result.stdout.trim() : ''
+  const stdout = typeof result.stdout === 'string' ? result.stdout.trim() : '';
   if (stdout.length > 0) {
-    return err(new Error(`Failed to ${options.operation}: ${stdout}`))
+    return err(new Error(`Failed to ${options.operation}: ${stdout}`));
   }
 
-  return err(new Error(`Failed to ${options.operation}.`))
+  return err(new Error(`Failed to ${options.operation}.`));
 }
 
 function buildGitHubRepositoryUrl(repository: RepositorySlug): string {
-  const { owner, repo } = repository
-  return `${GITHUB_HTTPS_BASE}${owner}/${repo}.git`
+  const { owner, repo } = repository;
+  return `${GITHUB_HTTPS_BASE}${owner}/${repo}.git`;
 }
 
 function buildAuthenticatedGitHubRepositoryUrl(options: {
-  repository: RepositorySlug
-  username: string
-  token: string
+  repository: RepositorySlug;
+  username: string;
+  token: string;
 }): string {
   return buildGitHubRepositoryUrl(options.repository).replace(
     GITHUB_HTTPS_BASE,
@@ -184,18 +184,18 @@ function buildAuthenticatedGitHubRepositoryUrl(options: {
       username: options.username,
       token: options.token,
     }),
-  )
+  );
 }
 
 function buildAuthenticatedGitHubBase(options: {
-  username: string
-  token: string
+  username: string;
+  token: string;
 }): string {
-  const encodedUsername = encodeURIComponent(options.username)
-  const encodedToken = encodeURIComponent(options.token)
-  return `https://${encodedUsername}:${encodedToken}@github.com/`
+  const encodedUsername = encodeURIComponent(options.username);
+  const encodedToken = encodeURIComponent(options.token);
+  return `https://${encodedUsername}:${encodedToken}@github.com/`;
 }
 
 function isFullGitSha(value: string): boolean {
-  return /^[0-9a-fA-F]{40}$/.test(value)
+  return /^[0-9a-fA-F]{40}$/.test(value);
 }

@@ -1,18 +1,18 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import {
   buildReleaseAssetCandidates,
   detectPlatformTuple,
-} from '../../src/domain/platform'
-import * as child_process from 'node:child_process'
+} from '../../src/domain/platform';
+import * as child_process from 'node:child_process';
 
 vi.mock('node:child_process', () => ({
   execFileSync: vi.fn(),
-}))
+}));
 
 describe('detectPlatformTuple', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
-  })
+    vi.clearAllMocks();
+  });
 
   it.each([
     ['linux x86_64', 'linux', 'x64', { os: 'linux', arch: 'x86_64' }],
@@ -24,34 +24,34 @@ describe('detectPlatformTuple', () => {
         platform as NodeJS.Platform,
         arch as NodeJS.Architecture,
       ),
-    ).toEqual(expected)
-  })
+    ).toEqual(expected);
+  });
 
   it('detects darwin x86_64 correctly without rosetta', () => {
-    vi.mocked(child_process.execFileSync).mockReturnValue('0\n')
+    vi.mocked(child_process.execFileSync).mockReturnValue('0\n');
     expect(detectPlatformTuple('darwin', 'x64')).toEqual({
       os: 'darwin',
       arch: 'x86_64',
-    })
-  })
+    });
+  });
 
   it('detects darwin aarch64 correctly with rosetta', () => {
-    vi.mocked(child_process.execFileSync).mockReturnValue('1\n')
+    vi.mocked(child_process.execFileSync).mockReturnValue('1\n');
     expect(detectPlatformTuple('darwin', 'x64')).toEqual({
       os: 'darwin',
       arch: 'aarch64',
-    })
-  })
+    });
+  });
 
   it('falls back to x86_64 on darwin if sysctl throws', () => {
     vi.mocked(child_process.execFileSync).mockImplementation(() => {
-      throw new Error('sysctl not found')
-    })
+      throw new Error('sysctl not found');
+    });
     expect(detectPlatformTuple('darwin', 'x64')).toEqual({
       os: 'darwin',
       arch: 'x86_64',
-    })
-  })
+    });
+  });
 
   it.each([
     ['unsupported OS', 'win32', 'x64', 'Unsupported OS for setup-astm: win32'],
@@ -67,9 +67,9 @@ describe('detectPlatformTuple', () => {
         platform as NodeJS.Platform,
         arch as NodeJS.Architecture,
       ),
-    ).toThrow(message)
-  })
-})
+    ).toThrow(message);
+  });
+});
 
 describe('setup-astm release asset candidates', () => {
   it('builds linux x86_64 runtime asset candidates', () => {
@@ -81,8 +81,8 @@ describe('setup-astm release asset candidates', () => {
         },
         false,
       ),
-    ).toEqual(['astm-linux-x86_64', 'astm-linux-amd64'])
-  })
+    ).toEqual(['astm-linux-x86_64', 'astm-linux-amd64']);
+  });
 
   it('builds darwin arm64 candidates with x86_64 fallback', () => {
     expect(
@@ -97,6 +97,6 @@ describe('setup-astm release asset candidates', () => {
       'astm-darwin-aarch64',
       'astm-darwin-arm64',
       'astm-darwin-x86_64',
-    ])
-  })
-})
+    ]);
+  });
+});
