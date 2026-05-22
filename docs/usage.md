@@ -49,6 +49,6 @@ This form builds `astm` from the upstream `main` branch instead of downloading a
 
 Repository-local verification commands are:
 
-- `just fix`: applies formatter and safe lint fixes.
-- `just check`: validates format, lint, and type safety.
-- `just test`: runs the test suite.
+- `pnpm run fix`: applies Biome formatter and safe lint fixes.
+- `pnpm run check`: validates Biome checks and type safety.
+- `pnpm run test`: runs the test suite.
